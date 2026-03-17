@@ -21,6 +21,12 @@ type ApiError = {
 
 const statusOptions: TaskStatus[] = ["todo", "in_progress", "done"];
 
+const statusLabelMap: Record<TaskStatus, string> = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  done: "Completed",
+};
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -178,6 +184,33 @@ export default function DashboardPage() {
     }
   }
 
+  async function markTaskAsCompleted(taskId: string) {
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "done" }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error((result as ApiError)?.error?.message ?? "Failed to update task");
+      }
+
+      await loadTasks();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update task");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function deleteTask(taskId: string) {
     setError("");
     setSubmitting(true);
@@ -291,9 +324,10 @@ export default function DashboardPage() {
         <div className="task-grid">
           {tasks.map((task) => {
             const isEditing = editingTaskId === task.id;
+            const cardClassName = `task-card task-card--${task.status}`;
 
             return (
-              <article key={task.id} className="task-card">
+              <article key={task.id} className={cardClassName}>
                 {isEditing ? (
                   <>
                     <input
@@ -321,7 +355,7 @@ export default function DashboardPage() {
                   <>
                     <h3>{task.title}</h3>
                     <p>{task.description}</p>
-                    <span className="task-status">{task.status}</span>
+                    <span className="task-status">{statusLabelMap[task.status]}</span>
                     <small>{new Date(task.createdDate).toLocaleString()}</small>
                   </>
                 )}
@@ -341,6 +375,20 @@ export default function DashboardPage() {
                       <button type="button" onClick={() => startEditing(task)}>
                         Edit
                       </button>
+                      {task.status !== "done" ? (
+                        <button
+                          type="button"
+                          className="complete-button"
+                          onClick={() => markTaskAsCompleted(task.id)}
+                          disabled={submitting}
+                        >
+                          Mark Completed
+                        </button>
+                      ) : (
+                        <button type="button" className="ghost-button" disabled>
+                          Completed
+                        </button>
+                      )}
                       <button type="button" className="danger-button" onClick={() => deleteTask(task.id)}>
                         Delete
                       </button>
