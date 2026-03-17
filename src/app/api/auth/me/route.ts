@@ -1,33 +1,15 @@
-import mongoose from "mongoose";
 import { NextRequest } from "next/server";
-import { connectToDatabase } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/api-auth";
-import { AppError, handleApiError } from "@/lib/errors";
-import { User } from "@/models/User";
+import { handleApiError } from "@/lib/errors";
 import { ok } from "@/lib/response";
+import { getCurrentUser } from "@/services/auth-service";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const userId = getUserIdFromRequest(request);
+    const result = await getCurrentUser(userId);
 
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new AppError("Unauthorized", 401);
-    }
-
-    const user = await User.findById(userId).select("name email");
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-
-    return ok({
-      user: {
-        id: String(user._id),
-        name: user.name,
-        email: user.email,
-      },
-    });
+    return ok(result);
   } catch (error) {
     return handleApiError(error);
   }

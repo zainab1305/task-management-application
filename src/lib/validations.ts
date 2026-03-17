@@ -3,10 +3,18 @@ import { TASK_STATUSES } from "@/models/Task";
 
 const emailSchema = z.email().trim().toLowerCase();
 
+const passwordSchema = z
+  .string()
+  .min(8)
+  .max(128)
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, {
+    message: "Password must include upper, lower, and number",
+  });
+
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: emailSchema,
-  password: z.string().min(8).max(128),
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({
